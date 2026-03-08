@@ -1,0 +1,420 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== AUTH & USERS ==========
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  adAccounts    UserAdAccount[]
+  rules         AutomationRule[]
+  reports       Report[]
+  alerts        Alert[]
+}
+
+enum Role {
+  ADMIN
+  USER
+  VIEWER
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ========== META AD ACCOUNTS ==========
+model AdAccount {
+  id              String   @id
+  name            String
+  currency        String   @default("TRY")
+  timezone        String   @default("Europe/Istanbul")
+  businessName    String?
+  accountStatus   Int      @default(1)
+  amountSpent     Float    @default(0)
+  balance         Float    @default(0)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users           UserAdAccount[]
+  campaigns       Campaign[]
+  adSets          AdSet[]
+  ads             Ad[]
+  audiences       Audience[]
+  pixelEvents     PixelEvent[]
+  dailyInsights   DailyInsight[]
+  alerts          Alert[]
+}
+
+model UserAdAccount {
+  userId      String
+  adAccountId String
+  role        AccountRole @default(ANALYST)
+  isDefault   Boolean     @default(false)
+  addedAt     DateTime    @default(now())
+
+  user        User       @relation(fields: [userId], references: [id])
+  adAccount   AdAccount  @relation(fields: [adAccountId], references: [id])
+  @@id([userId, adAccountId])
+}
+
+enum AccountRole {
+  OWNER
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+// ========== CAMPAIGNS ==========
+model Campaign {
+  id              String   @id
+  adAccountId     String
+  name            String
+  status          String
+  effectiveStatus String?
+  objective       String
+  buyingType      String?
+  budgetOptimization String?
+  dailyBudget     Float?
+  lifetimeBudget  Float?
+  bidStrategy     String?
+  specialAdCategory String?
+  startTime       DateTime?
+  stopTime        DateTime?
+  advantageState   String?
+  opportunityScore Int?
+  createdTime     DateTime?
+  updatedTime     DateTime?
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+  adSets          AdSet[]
+  insights        CampaignInsight[]
+
+  @@index([adAccountId, status])
+}
+
+// ========== AD SETS ==========
+model AdSet {
+  id                  String   @id
+  campaignId          String
+  adAccountId         String
+  name                String
+  status              String
+  effectiveStatus     String?
+  optimizationGoal    String?
+  billingEvent        String?
+  dailyBudget         Float?
+  lifetimeBudget      Float?
+  bidAmount           Float?
+  targetingJson       Json?
+  promotedObjectJson  Json?
+  startTime           DateTime?
+  stopTime            DateTime?
+  deliveryStatus      String?
+  learningPhaseInfo   String?
+  createdTime         DateTime?
+  updatedTime         DateTime?
+  lastSyncAt          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  campaign            Campaign  @relation(fields: [campaignId], references: [id])
+  adAccount           AdAccount @relation(fields: [adAccountId], references: [id])
+  ads                 Ad[]
+  insights            AdSetInsight[]
+
+  @@index([campaignId])
+  @@index([adAccountId, status])
+}
+
+// ========== ADS ==========
+model Ad {
+  id              String   @id
+  adSetId         String
+  adAccountId     String
+  name            String
+  status          String
+  effectiveStatus String?
+  creativeId      String?
+  previewUrl      String?  @db.Text
+  thumbnailUrl    String?
+  creativeSummary Json?
+  trackingSpecs   Json?
+  createdTime     DateTime?
+  updatedTime     DateTime?
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  adSet           AdSet     @relation(fields: [adSetId], references: [id])
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+  insights        AdInsight[]
+
+  @@index([adSetId])
+  @@index([adAccountId])
+}
+
+// ========== INSIGHTS ==========
+model DailyInsight {
+  id              String   @id @default(cuid())
+  adAccountId     String
+  date            DateTime @db.Date
+  spend           Float    @default(0)
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  clicks          Int      @default(0)
+  linkClicks      Int      @default(0)
+  landingPageViews Int     @default(0)
+  cpc             Float    @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  frequency       Float    @default(0)
+  actions         Json?
+  costPerAction   Json?
+  conversions     Int      @default(0)
+  conversionValue Float    @default(0)
+  roas            Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+
+  @@unique([adAccountId, date])
+  @@index([adAccountId, date])
+}
+
+model CampaignInsight {
+  id              String   @id @default(cuid())
+  campaignId      String
+  date            DateTime @db.Date
+  spend           Float    @default(0)
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  clicks          Int      @default(0)
+  linkClicks      Int      @default(0)
+  landingPageViews Int     @default(0)
+  cpc             Float    @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  frequency       Float    @default(0)
+  actions         Json?
+  costPerAction   Json?
+  qualityRanking  String?
+  engagementRanking String?
+  conversionRanking String?
+  breakdowns      Json?
+  createdAt       DateTime @default(now())
+
+  campaign        Campaign @relation(fields: [campaignId], references: [id])
+
+  @@unique([campaignId, date])
+  @@index([campaignId, date])
+}
+
+model AdSetInsight {
+  id              String   @id @default(cuid())
+  adSetId         String
+  date            DateTime @db.Date
+  spend           Float    @default(0)
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  clicks          Int      @default(0)
+  linkClicks      Int      @default(0)
+  landingPageViews Int     @default(0)
+  cpc             Float    @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  frequency       Float    @default(0)
+  actions         Json?
+  costPerAction   Json?
+  createdAt       DateTime @default(now())
+
+  adSet           AdSet @relation(fields: [adSetId], references: [id])
+
+  @@unique([adSetId, date])
+  @@index([adSetId, date])
+}
+
+model AdInsight {
+  id              String   @id @default(cuid())
+  adId            String
+  date            DateTime @db.Date
+  spend           Float    @default(0)
+  impressions     Int      @default(0)
+  reach           Int      @default(0)
+  clicks          Int      @default(0)
+  linkClicks      Int      @default(0)
+  landingPageViews Int     @default(0)
+  cpc             Float    @default(0)
+  cpm             Float    @default(0)
+  ctr             Float    @default(0)
+  frequency       Float    @default(0)
+  actions         Json?
+  costPerAction   Json?
+  qualityRanking  String?
+  engagementRanking String?
+  conversionRanking String?
+  createdAt       DateTime @default(now())
+
+  ad              Ad @relation(fields: [adId], references: [id])
+
+  @@unique([adId, date])
+  @@index([adId, date])
+}
+
+// ========== PIXEL & EVENTS ==========
+model PixelEvent {
+  id              String   @id @default(cuid())
+  adAccountId     String
+  pixelId         String
+  eventName       String
+  eventSource     String
+  eventCount24h   Int      @default(0)
+  eventCount7d    Int      @default(0)
+  emqScore        Float?
+  emqRating       String?
+  dedupPercentage Float?
+  matchKeys       Json?
+  diagnostics     Json?
+  lastFiredAt     DateTime?
+  checkedAt       DateTime @default(now())
+
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+
+  @@index([adAccountId, eventName])
+}
+
+// ========== AUDIENCES ==========
+model Audience {
+  id              String   @id
+  adAccountId     String
+  name            String
+  type            String
+  subtype         String?
+  approximateCount Int?
+  retentionDays   Int?
+  lookalikeSpec   Json?
+  rule            Json?
+  deliveryStatus  String?
+  operationStatus Json?
+  createdTime     DateTime?
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+
+  @@index([adAccountId, type])
+}
+
+// ========== AUTOMATION RULES ==========
+model AutomationRule {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  description     String?
+  isActive        Boolean  @default(true)
+  entityType      String
+  entityId        String?
+  conditions      Json
+  actions         Json
+  schedule        String?
+  cooldownMinutes Int      @default(60)
+  lastExecutedAt  DateTime?
+  executionCount  Int      @default(0)
+  lastResult      Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User @relation(fields: [userId], references: [id])
+  executions      RuleExecution[]
+}
+
+model RuleExecution {
+  id              String   @id @default(cuid())
+  ruleId          String
+  status          String
+  entityId        String
+  conditionsMet   Json
+  actionsTaken    Json
+  errorMessage    String?
+  executedAt      DateTime @default(now())
+
+  rule            AutomationRule @relation(fields: [ruleId], references: [id])
+
+  @@index([ruleId, executedAt])
+}
+
+// ========== ALERTS ==========
+model Alert {
+  id              String   @id @default(cuid())
+  adAccountId     String?
+  userId          String
+  type            String
+  severity        String
+  title           String
+  message         String   @db.Text
+  entityType      String?
+  entityId        String?
+  metadata        Json?
+  isRead          Boolean  @default(false)
+  isDismissed     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  user            User      @relation(fields: [userId], references: [id])
+  adAccount       AdAccount? @relation(fields: [adAccountId], references: [id])
+
+  @@index([userId, isRead, createdAt])
+}
+
+// ========== REPORTS ==========
+model Report {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  type            String
+  config          Json
+  generatedData   Json?
+  format          String   @default("JSON")
+  generatedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User @relation(fields: [userId], references: [id])
+}
