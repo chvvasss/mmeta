@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { generateMockAds } from "@/lib/mock-data"
+import { getAds } from "@/lib/services/ad-service"
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,17 +10,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = request.nextUrl
-    const adSetId = searchParams.get("adSetId") || undefined
-    const search = searchParams.get("search")
+    const result = await getAds(session, {
+      adSetId: searchParams.get("adSetId") || undefined,
+      search: searchParams.get("search") || undefined,
+    })
 
-    let ads = generateMockAds(adSetId)
-
-    if (search) {
-      const q = search.toLowerCase()
-      ads = ads.filter(a => a.name.toLowerCase().includes(q))
-    }
-
-    return NextResponse.json({ data: ads, meta: { total: ads.length } })
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error fetching ads:", error)
     return NextResponse.json({ error: "Failed to fetch ads" }, { status: 500 })
@@ -28,5 +23,5 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST() {
-  return NextResponse.json({ message: "Ad creation — requires form implementation" }, { status: 501 })
+  return NextResponse.json({ message: "Ad creation - coming soon" }, { status: 501 })
 }

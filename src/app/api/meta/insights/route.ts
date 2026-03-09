@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { generateMockKPIs, generateMockDailyInsights, generateMockAccountSummary } from "@/lib/mock-data"
+import { getKPIs, getDailyInsights, getAccountSummary } from "@/lib/services/insight-service"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,29 +14,25 @@ export async function GET(request: NextRequest) {
     const datePreset = searchParams.get("datePreset") || "last_7d"
 
     const daysMap: Record<string, number> = {
-      today: 1,
-      yesterday: 1,
-      last_7d: 7,
-      last_14d: 14,
-      last_30d: 30,
-      last_90d: 90,
+      today: 1, yesterday: 1, last_7d: 7, last_14d: 14,
+      last_30d: 30, last_90d: 90,
       this_month: new Date().getDate(),
       last_month: new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate(),
     }
 
     switch (type) {
       case "kpi": {
-        const kpis = generateMockKPIs(datePreset)
-        return NextResponse.json({ data: kpis })
+        const data = await getKPIs(session, datePreset)
+        return NextResponse.json({ data })
       }
       case "daily": {
         const days = daysMap[datePreset] || 7
-        const daily = generateMockDailyInsights(days)
-        return NextResponse.json({ data: daily })
+        const data = await getDailyInsights(session, days)
+        return NextResponse.json({ data })
       }
       case "summary": {
-        const summary = generateMockAccountSummary()
-        return NextResponse.json({ data: summary })
+        const data = await getAccountSummary(session)
+        return NextResponse.json({ data })
       }
       default:
         return NextResponse.json({ error: "Invalid type" }, { status: 400 })

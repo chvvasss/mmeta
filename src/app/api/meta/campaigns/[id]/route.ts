@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { generateMockCampaignDetail, generateCampaignDailyInsights } from "@/lib/mock-data"
+import { getCampaignById, getCampaignInsights } from "@/lib/services/campaign-service"
 import { updateCampaignSchema } from "@/lib/validations/campaign"
 
 export async function GET(
@@ -14,13 +14,13 @@ export async function GET(
     }
 
     const { id } = await params
-    const campaign = generateMockCampaignDetail(id)
+    const campaign = await getCampaignById(session, id)
 
     if (!campaign) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
     }
 
-    const dailyInsights = generateCampaignDailyInsights(id, 7)
+    const dailyInsights = await getCampaignInsights(session, id, 7)
 
     return NextResponse.json({
       data: {
@@ -55,7 +55,7 @@ export async function PUT(
       )
     }
 
-    const campaign = generateMockCampaignDetail(id)
+    const campaign = await getCampaignById(session, id)
     if (!campaign) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, RefreshCw, User } from "lucide-react"
+import { Bell, RefreshCw, User, Wifi, WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DateRangePicker } from "@/components/shared/DateRangePicker"
 import { useAlerts } from "@/hooks/use-alerts"
 import { useQueryClient } from "@tanstack/react-query"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { useState } from "react"
 
 interface TopbarProps {
@@ -23,8 +23,12 @@ interface TopbarProps {
 export function Topbar({ title }: TopbarProps) {
   const alertsQuery = useAlerts()
   const queryClient = useQueryClient()
+  const { data: session } = useSession()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const unreadCount = alertsQuery.data?.meta?.unreadCount || 0
+
+  const dataMode = (session as Record<string, unknown> | null)?.dataMode as string || "demo"
+  const isLive = dataMode === "live"
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -43,6 +47,16 @@ export function Topbar({ title }: TopbarProps) {
       </h1>
 
       <div className="flex items-center gap-2">
+        {/* Data Mode Indicator */}
+        <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium border ${
+          isLive
+            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+            : "border-amber-500/20 bg-amber-500/10 text-amber-400"
+        }`}>
+          {isLive ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+          {isLive ? "Canli" : "Demo"}
+        </div>
+
         <DateRangePicker />
 
         <Button

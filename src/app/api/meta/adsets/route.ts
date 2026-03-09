@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { generateMockAdSets } from "@/lib/mock-data"
+import { getAdSets } from "@/lib/services/adset-service"
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,21 +10,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = request.nextUrl
-    const campaignId = searchParams.get("campaignId") || undefined
-    const search = searchParams.get("search")
-    const status = searchParams.get("status")
+    const result = await getAdSets(session, {
+      campaignId: searchParams.get("campaignId") || undefined,
+      status: searchParams.get("status") || undefined,
+      search: searchParams.get("search") || undefined,
+    })
 
-    let adSets = generateMockAdSets(campaignId)
-
-    if (status && status !== "ALL") {
-      adSets = adSets.filter(a => a.effectiveStatus === status)
-    }
-    if (search) {
-      const q = search.toLowerCase()
-      adSets = adSets.filter(a => a.name.toLowerCase().includes(q))
-    }
-
-    return NextResponse.json({ data: adSets, meta: { total: adSets.length } })
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error fetching ad sets:", error)
     return NextResponse.json({ error: "Failed to fetch ad sets" }, { status: 500 })
@@ -32,5 +24,5 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST() {
-  return NextResponse.json({ message: "Ad Set creation — requires form implementation" }, { status: 501 })
+  return NextResponse.json({ message: "Ad Set creation - coming soon" }, { status: 501 })
 }
