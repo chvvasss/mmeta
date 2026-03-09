@@ -5,6 +5,8 @@ import { SpendChart } from "@/components/dashboard/SpendChart"
 import { CampaignTable } from "@/components/dashboard/CampaignTable"
 import { AlertsFeed } from "@/components/dashboard/AlertsFeed"
 import { AccountSummaryBar } from "@/components/dashboard/AccountSummaryBar"
+import { QuickActions } from "@/components/dashboard/QuickActions"
+import { SmartInsights } from "@/components/dashboard/SmartInsights"
 import { useKPIInsights, useDailyInsights, useAccountSummary } from "@/hooks/use-insights"
 import { useCampaigns } from "@/hooks/use-campaigns"
 import { useAlerts } from "@/hooks/use-alerts"
@@ -35,6 +37,9 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* Quick Actions */}
+        <QuickActions />
+
         {/* KPI Cards */}
         <KPICards
           data={kpiQuery.data?.slice(0, 4) || []}
@@ -56,6 +61,9 @@ export default function DashboardPage() {
             />
           </div>
         </div>
+
+        {/* Smart Insights */}
+        <SmartInsights />
 
         {/* Campaign Table */}
         <CampaignTable
